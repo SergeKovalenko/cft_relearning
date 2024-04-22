@@ -1,88 +1,78 @@
 package Lesson1;
-
+import lombok.ToString;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Stack;
-
-public class Account {
+@ToString
+class Account {
     private String name;
-    Map<String,Integer> moneyArr = new HashMap<>();
-    public Stack<String> stack=new Stack<>();
+    private Map<Currency, Integer> currenc = new HashMap<>();
+    private Deque<Command> saves = new ArrayDeque<>();
 
-
-    public Map<String,Integer> getMoney() {
-        return moneyArr;
-    }
-    public void setMoney(Map<String,Integer> ftMoney) {
-        this.moneyArr = ftMoney;
-    }
-
-    public Account() {
-        this.name = name;
-        stack.clear();
-          }
-
-    public void setName(String name) {
-        if (name==null ||name.isBlank())throw new IllegalArgumentException("Имя должно быть заполнено");
-        this.name = name;
-        stack.push(name+";"+this.moneyArr);
-
-    }
-    public void undo() {
-        Map<String,Integer> tmoneyArr = new HashMap<>();
-        if (stack.isEmpty()){return;}//если не было изменений не нужно обрабатывать
-        stack.pop();
-        String txt = stack.peek();
-        if(txt.indexOf("{}")>0) return;//если с деньгами не было изменений не обрабатывать
-
-        int pos = txt.indexOf(";");//поиск изменения имени
-        this.name = txt.substring(0, pos);
-
-        moneyArr.forEach((k, v) -> {
-            int i,j;
-            String txtRest;
-             i= txt.indexOf(k); //это позиция кода валюты
-            if(i>0) {
-                String tCur=txt.substring(i,i+3);
-                txtRest=txt.substring(i+4,txt.length());
-                j=txtRest.indexOf(",");//это позиция значения валюты
-                if (j<0)j=txtRest.length()-1;
-                Integer tVal=Integer.parseInt(txtRest.substring(0,j));
-                //нужна проверка на изменение
-                tmoneyArr.put(FtMoney.valueOf(tCur).name(),tVal);//изменение значения
-
-            }
-        });
-        this.moneyArr=tmoneyArr; //присвоение нового массива
+    public Account(String name) {
+        setName(name);
     }
 
     public String getName() {
         return name;
     }
 
+    public void setName(String name) {
+        String tmp = Account.this.name;
+        if (name == null || name.isBlank()) throw new IllegalArgumentException("Некорректное значение для имени");
+        saves.push(()->Account.this.name=tmp);
+        this.name = name;
+    }
 
-    public void chgMoney(String cur,Integer val){
-        if(val<0)throw new IllegalArgumentException("Количество должно быть положительным");
-        if(this.moneyArr.get(cur)==null)
-            this.moneyArr.put(cur, val);
-        else
-            this.moneyArr.replace(cur, val);
-        stack.push(name + ";" + this.moneyArr);
-     }
-    public void addMoney(Map<String,Integer> map,String cur, Integer val){
-        if (val<0)throw new IllegalArgumentException("Должно быть только положительно значение");
-        map.put(cur,val);
+    public Map<Currency, Integer> getCurrenc() {
+        return new HashMap<>(this.currenc);
     }
-    @Override
-    public String toString() {
-        return name+" - " +
-                " курсы ='" + moneyArr.toString() + '\'' +
-                '}'
-               ;
+
+    public void setCurrenc(Map<Currency, Integer> currenc) {
+        currenc = currenc;
     }
-    public String StoString() {
-        return name+" - " +" stack {"+this.stack+"}"
-                ;
+
+    public void addCurrenc(Currency currency, int amount) {
+        Map<Currency, Integer> tmp=new HashMap<>();
+        if (currency == null) throw new IllegalArgumentException("Валюта не может быть пустой");
+        if (amount < 0) throw new IllegalArgumentException("Количество валюты должно быть положительным числом");
+        tmp.clear();
+        tmp.putAll(Account.this.currenc);
+        saves.push(()->Account.this.currenc=tmp);
+        currenc.put(currency, amount);
+    }
+
+    public Save save() {
+        return new AccSave();
+    }
+
+    public void undo() {
+        saves.pop().make();
+    }
+
+    public Save load() {
+        return new AccSave();
+    }
+
+    private class AccSave implements Save {
+        private String name;
+        private final Map<Currency, Integer> currenc;
+
+        public AccSave() {
+            this.name = Account.this.name;
+            this.currenc = new HashMap<>(Account.this.currenc);
+        }
+
+        public void load() {
+            Account.this.name = name;
+            Account.this.currenc.clear();
+            Account.this.currenc.putAll(currenc);
+        }
+
     }
 }
 
+interface Command{
+    void make();
+}
