@@ -37,6 +37,11 @@ class Account {
         Map<Currency, Integer> tmp=new HashMap<>();
         if (currency == null) throw new IllegalArgumentException("Валюта не может быть пустой");
         if (amount < 0) throw new IllegalArgumentException("Количество валюты должно быть положительным числом");
+        if (Account.this.currenc.containsKey(currency) ) {
+            tmp.replace(currency,amount);
+            currenc.put(currency, amount);
+            return;
+        }
         tmp.clear();
         tmp.putAll(Account.this.currenc);
         saves.push(()->Account.this.currenc=tmp);
@@ -69,7 +74,6 @@ class Account {
             Account.this.currenc.clear();
             Account.this.currenc.putAll(currenc);
         }
-
     }
 }
 
